@@ -5,13 +5,15 @@
             [clojure.string :as str]))
 
 (def default-scheme-header
-  "The default header used in wrap-forwarded-scheme."
+  "The default header used in wrap-forwarded-scheme (x-forwarded-proto)."
   "x-forwarded-proto")
 
 (defn wrap-forwarded-scheme
   "Middleware that changes the :scheme of the request map to the value present
   in a request header. This is useful if your application sits behind a
-  reverse proxy or load balancer that handles the SSL connection."
+  reverse proxy or load balancer that handles the SSL transport.
+
+  The header defaults to x-forwarded-proto."
   ([handler]
      (wrap-forwarded-scheme handler default-scheme-header))
   ([handler header]
@@ -43,7 +45,17 @@
 (defn wrap-hsts
   "Middleware that adds the Strict-Transport-Security header to the response
   from the handler. This ensures the browser will only use HTTPS for future
-  requests to the domain."
+  requests to the domain.
+
+  Accepts the following options:
+
+  :max-age             - the max time in seconds the HSTS policy applies
+                         (defaults to 31536000 seconds, or 1 year)
+
+  :include-subdomains? - true if subdomains should be included in the HSTS
+                         policy (defaults to true)
+
+  See RFC 6797 for more information (https://tools.ietf.org/html/rfc6797)."
   {:arglists '([handler] [handler options])}
   [handler & [{:as options}]]
   (fn [request]
