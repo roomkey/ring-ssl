@@ -1,38 +1,51 @@
 (ns ring.middleware.ssl
-  (:require [ring.util.response :as response]
-            [ring.util.ssl :as util]
-            [ring.util.request :as request]))
+  "Middleware for managing handlers operating over HTTPS."
+  (:require [ring.util.response :as resp]
+            [ring.util.request :as req]
+            [clojure.string :as str]))
 
-(defn- idempotent-request?
-  [{:keys [request-method]}]
-  (some #(= request-method %) [:get :head]))
+(def default-scheme-header
+  "The default header used in wrap-forwarded-scheme."
+  "x-forwarded-proto")
 
-(defn- https-url
-  "Extracts the URL from req, and converts it to an https URL."
-  [req]
-  (request/request-url (assoc req :scheme :https)))
+(defn wrap-forwarded-scheme
+  "Middleware that changes the :scheme of the request map to the value present
+  in a request header. This is useful if your application sits behind a
+  reverse proxy or load balancer that handles the SSL connection."
+  ([handler]
+     (wrap-forwarded-scheme handler default-scheme-header))
+  ([handler header]
+     (fn [req]
+       (let [default (name (:scheme req))
+             scheme  (str/lower-case (get-in req [:headers header] default))]
+         (assert (or (= scheme "http") (= scheme "https")))
+         (handler (assoc req :scheme (keyword scheme)))))))
 
-(defn- add-strict-transport-security
-  [req]
-  (response/header req
-                   "strict-transport-security"
-                   "max-age=31536000; includeSubdomains"))
+(defn- get-request? [{method :request-method}]
+  (or (= method :head)
+      (= method :get)))
 
-(defn- https-redirect
-  [req]
-  {:status (if (idempotent-request? req) 301 307)
-   :headers {"Content-Type" "text/html"
-             "Location" (https-url req)}})
-
-(defn- build-secure-handler [original-handler req]
-  (if (util/https? req) original-handler https-redirect))
-
-(defn wrap-ssl
-  "Redirect all requests to https. Looks at the scheme of the request URI, or
-  the X-Forwarded-Proto header used by Heroku among others.
-
-  Adds Strict-Transport-Security header to ensure future requests use https."
+(defn wrap-ssl-redirect
+  "Middleware that redirects any HTTP request to the equivalent HTTPS URL."
   [handler]
-  (fn [req]
-    (let [secure-handler (build-secure-handler handler req)]
-      (-> req secure-handler add-strict-transport-security))))
+  (fn [request]
+    (if (= (:scheme request) :https)
+      (handler request)
+      (-> (resp/redirect (req/request-url (assoc request :scheme :https)))
+          (resp/status   (if (get-request? request) 301 307))))))
+
+(defn- build-hsts-header
+  [{:keys [max-age include-subdomains?]
+    :or   {max-age 31536000, include-subdomains? true}}]
+  (str "max-age=" max-age
+       (if include-subdomains? "; includeSubDomains")))
+
+(defn wrap-hsts
+  "Middleware that adds the Strict-Transport-Security header to the response
+  from the handler. This ensures the browser will only use HTTPS for future
+  requests to the domain."
+  {:arglists '([handler] [handler options])}
+  [handler & [{:as options}]]
+  (fn [request]
+    (-> (handler request)
+        (resp/header "Strict-Transport-Security" (build-hsts-header options)))))
