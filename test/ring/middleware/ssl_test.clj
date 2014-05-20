@@ -45,8 +45,20 @@
         (is (nil? (get-header response "location")))))))
 
 (deftest test-wrap-hsts
-  (let [handler (wrap-hsts (constantly (response "")))]
-    (testing "no options"
-      (let [response (handler (request :get "/"))]
-        (is (= (get-header response "strict-transport-security")
-               "max-age=31536000; includeSubDomains"))))))
+  (testing "defaults"
+    (let [handler  (wrap-hsts (constantly (response "")))
+          response (handler (request :get "/"))]
+      (is (= (get-header response "strict-transport-security")
+             "max-age=31536000; includeSubDomains"))))
+  
+  (testing "custom max-age"
+    (let [handler  (wrap-hsts (constantly (response "")) {:max-age 0})
+          response (handler (request :get "/"))]
+      (is (= (get-header response "strict-transport-security")
+             "max-age=0; includeSubDomains"))))
+
+  (testing "don't include subdomains"
+    (let [handler  (wrap-hsts (constantly (response "")) {:include-subdomains? false})
+          response (handler (request :get "/"))]
+      (is (= (get-header response "strict-transport-security")
+             "max-age=31536000")))))
