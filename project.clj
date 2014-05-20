@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [ring/ring-core "1.3.0-RC1"]]
   :plugins [[codox "0.8.5"]]
+  :codox {:project {:name "Ring-SSL"}}
   :profiles {:dev {:dependencies [[ring-mock "0.1.5"]]}})
