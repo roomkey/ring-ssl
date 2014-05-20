@@ -5,20 +5,27 @@
         [ring.util.response :only (response get-header)]))
 
 (deftest test-wrap-forwarded-scheme
-  (let [handler (wrap-forwarded-scheme #(response (name (:scheme %))))]
-    (testing "no x-forwarded-proto header"
-      (let [response (handler (request :get "/"))]
-        (is (= (:body response) "http")))
-      (let [response (handler (request :get "https://localhost/"))]
-        (is (= (:body response) "https"))))
-    
-    (testing "x-forwarded-proto header"
-      (let [response (handler (-> (request :get "/")
-                                  (header "x-forwarded-proto" "https")))]
-        (is (= (:body response) "https")))
-      (let [response (handler (-> (request :get "https://localhost/")
-                                  (header "x-forwarded-proto" "http")))]
-        (is (= (:body response) "http"))))))
+  (let [handler #(response (name (:scheme %)))]
+    (let [handler (wrap-forwarded-scheme handler)]
+      (testing "no header"
+        (let [response (handler (request :get "/"))]
+          (is (= (:body response) "http")))
+        (let [response (handler (request :get "https://localhost/"))]
+          (is (= (:body response) "https"))))
+
+      (testing "default header"
+        (let [response (handler (-> (request :get "/")
+                                    (header "x-forwarded-proto" "https")))]
+          (is (= (:body response) "https")))
+        (let [response (handler (-> (request :get "https://localhost/")
+                                    (header "x-forwarded-proto" "http")))]
+          (is (= (:body response) "http")))))
+
+    (testing "custom header"
+      (let [handler  (wrap-forwarded-scheme handler "X-Foo")
+            response (handler (-> (request :get "/")
+                                  (header "x-foo" "https")))]
+        (is (= (:body response) "https"))))))
 
 (deftest test-wrap-ssl-redirect
   (let [handler (wrap-ssl-redirect (constantly (response "")))]

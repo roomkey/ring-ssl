@@ -18,7 +18,8 @@
      (wrap-forwarded-scheme handler default-scheme-header))
   ([handler header]
      (fn [req]
-       (let [default (name (:scheme req))
+       (let [header  (str/lower-case header)
+             default (name (:scheme req))
              scheme  (str/lower-case (get-in req [:headers header] default))]
          (assert (or (= scheme "http") (= scheme "https")))
          (handler (assoc req :scheme (keyword scheme)))))))
