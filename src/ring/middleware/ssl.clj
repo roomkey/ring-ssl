@@ -28,13 +28,22 @@
   (or (= method :head)
       (= method :get)))
 
+(defn- https-url [url-string port]
+  (let [url (java.net.URL. url-string)]
+    (str (java.net.URL. "https" (.getHost url) (or port -1) (.getFile url)))))
+
 (defn wrap-ssl-redirect
-  "Middleware that redirects any HTTP request to the equivalent HTTPS URL."
-  [handler]
+  "Middleware that redirects any HTTP request to the equivalent HTTPS URL.
+
+  Accepts the following options:
+
+  :ssl-port - the SSL port to use for redirects, defaults to 443."
+  {:arglists '([handler] [handler options])}
+  [handler & [{:keys [ssl-port]}]]
   (fn [request]
     (if (= (:scheme request) :https)
       (handler request)
-      (-> (resp/redirect (req/request-url (assoc request :scheme :https)))
+      (-> (resp/redirect (https-url (req/request-url request) ssl-port))
           (resp/status   (if (get-request? request) 301 307))))))
 
 (defn- build-hsts-header
