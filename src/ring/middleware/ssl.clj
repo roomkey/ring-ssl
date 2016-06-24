@@ -69,5 +69,5 @@
   {:arglists '([handler] [handler options])}
   [handler & [{:as options}]]
   (fn [request]
-    (-> (handler request)
-        (resp/header "Strict-Transport-Security" (build-hsts-header options)))))
+    (when-let [res (handler request)]
+       (resp/header res "Strict-Transport-Security" (build-hsts-header options)))))
