@@ -15,14 +15,14 @@
 
   The header defaults to x-forwarded-proto."
   ([handler]
-     (wrap-forwarded-scheme handler default-scheme-header))
+   (wrap-forwarded-scheme handler default-scheme-header))
   ([handler header]
-     (fn [req]
-       (let [header  (str/lower-case header)
-             default (name (:scheme req))
-             scheme  (str/lower-case (get-in req [:headers header] default))]
-         (assert (or (= scheme "http") (= scheme "https")))
-         (handler (assoc req :scheme (keyword scheme)))))))
+   (fn [req]
+     (let [header  (str/lower-case header)
+           default (name (:scheme req))
+           scheme  (str/lower-case (get-in req [:headers header] default))]
+       (assert (or (= scheme "http") (= scheme "https")))
+       (handler (assoc req :scheme (keyword scheme)))))))
 
 (defn- get-request? [{method :request-method}]
   (or (= method :head)
