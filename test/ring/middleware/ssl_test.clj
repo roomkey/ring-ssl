@@ -27,6 +27,28 @@
                                   (header "x-foo" "https")))]
         (is (= (:body response) "https"))))))
 
+(deftest test-wrap-forwarded-scheme-cps
+  (testing "default header"
+    (let [handler (wrap-forwarded-scheme
+                   (fn [req respond _] (respond (-> req :scheme name response))))
+          req     (-> (request :get "/") (header "x-forwarded-proto" "https"))
+          resp    (promise)
+          ex      (promise)]
+      (handler req resp ex)
+      (is (not (realized? ex)))
+      (is (= (:body @resp) "https"))))
+
+  (testing "custom header"
+    (let [handler (wrap-forwarded-scheme
+                   (fn [req respond _] (respond (-> req :scheme name response)))
+                   "X-Foo")
+          req     (-> (request :get "/") (header "x-foo" "https"))
+          resp    (promise)
+          ex      (promise)]
+      (handler req resp ex)
+      (is (not (realized? ex)))
+      (is (= (:body @resp) "https")))))
+
 (deftest test-wrap-ssl-redirect
   (let [handler (wrap-ssl-redirect (constantly (response "")))]
     (testing "HTTP GET request"

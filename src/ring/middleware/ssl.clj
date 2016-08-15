@@ -8,6 +8,19 @@
   "The default header used in wrap-forwarded-scheme (x-forwarded-proto)."
   "x-forwarded-proto")
 
+(defn forwarded-scheme-request
+  "Change the :scheme of the request to the value present in a request header.
+  See: wrap-forwarded-scheme."
+  ([request]
+   (forwarded-scheme-request request default-scheme-header))
+  ([request header]
+   (let [header  (str/lower-case header)
+         default (name (:scheme request))
+         scheme  (str/lower-case (get-in request [:headers header] default))]
+    (if (#{"http" "https"} scheme)
+      (assoc request :scheme (keyword scheme))
+      request))))
+
 (defn wrap-forwarded-scheme
   "Middleware that changes the :scheme of the request map to the value present
   in a request header. This is useful if your application sits behind a
@@ -17,12 +30,11 @@
   ([handler]
    (wrap-forwarded-scheme handler default-scheme-header))
   ([handler header]
-   (fn [req]
-     (let [header  (str/lower-case header)
-           default (name (:scheme req))
-           scheme  (str/lower-case (get-in req [:headers header] default))]
-       (assert (or (= scheme "http") (= scheme "https")))
-       (handler (assoc req :scheme (keyword scheme)))))))
+   (fn
+     ([request]
+      (handler (forwarded-scheme-request request header)))
+     ([request respond raise]
+      (handler (forwarded-scheme-request request header) respond raise)))))
 
 (defn- get-request? [{method :request-method}]
   (or (= method :head)
