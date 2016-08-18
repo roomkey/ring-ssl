@@ -116,3 +116,22 @@
           response (handler (request :get "/"))]
       (is (= (get-header response "strict-transport-security")
              "max-age=31536000")))))
+
+(deftest test-wrap-hsts-cps
+  (testing "defaults"
+    (let [handler (wrap-hsts (fn [_ respond _] (respond (response ""))))
+          resp    (promise)
+          ex      (promise)]
+      (handler (request :get "/") resp ex)
+      (is (not (realized? ex)))
+      (is (= (get-header @resp "strict-transport-security")
+             "max-age=31536000; includeSubDomains"))))
+
+  (testing "custom max-age"
+    (let [handler (wrap-hsts (fn [_ respond _] (respond (response ""))) {:max-age 0})
+          resp    (promise)
+          ex      (promise)]
+      (handler (request :get "/") resp ex)
+      (is (not (realized? ex)))
+      (is (= (get-header @resp "strict-transport-security")
+             "max-age=0; includeSubDomains")))))

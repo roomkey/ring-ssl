@@ -76,6 +76,13 @@
   (str "max-age=" max-age
        (if include-subdomains? "; includeSubDomains")))
 
+(defn hsts-response
+  "Add the Strict-Transport-Security header to the response. See: wrap-hsts."
+  ([response]
+   (hsts-response response {}))
+  ([response options]
+   (resp/header response "Strict-Transport-Security" (build-hsts-header options))))
+
 (defn wrap-hsts
   "Middleware that adds the Strict-Transport-Security header to the response
   from the handler. This ensures the browser will only use HTTPS for future
@@ -90,8 +97,11 @@
                          policy (defaults to true)
 
   See RFC 6797 for more information (https://tools.ietf.org/html/rfc6797)."
-  {:arglists '([handler] [handler options])}
-  [handler & [{:as options}]]
-  (fn [request]
-    (-> (handler request)
-        (resp/header "Strict-Transport-Security" (build-hsts-header options)))))
+  ([handler]
+   (wrap-hsts handler {}))
+  ([handler options]
+   (fn
+     ([request]
+      (hsts-response (handler request) options))
+     ([request respond raise]
+      (handler request #(respond (hsts-response % options)) raise)))))
