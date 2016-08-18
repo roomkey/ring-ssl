@@ -77,6 +77,27 @@
         (is (= (:status response) 307))
         (is (= (get-header response "location") "https://localhost:8443/"))))))
 
+(deftest test-wrap-ssl-redirect-cps
+  (testing "HTTP GET request"
+    (let [handler (wrap-ssl-redirect (fn [_ respond _] (respond (response ""))))
+          resp    (promise)
+          ex      (promise)]
+      (handler (request :get "/") resp ex)
+      (is (not (realized? ex)))
+      (is (= (:status @resp) 301))
+      (is (= (get-header @resp "location") "https://localhost/"))))
+
+  (testing "HTTP GET request with custom SSL port"
+    (let [handler (wrap-ssl-redirect
+                   (fn [_ respond _] (respond (response "")))
+                   {:ssl-port 8443})
+          resp    (promise)
+          ex      (promise)]
+      (handler (request :get "/") resp ex)
+      (is (not (realized? ex)))
+      (is (= (:status @resp) 301))
+      (is (= (get-header @resp "location") "https://localhost:8443/")))))
+
 (deftest test-wrap-hsts
   (testing "defaults"
     (let [handler  (wrap-hsts (constantly (response "")))
