@@ -45,15 +45,11 @@
     (str (java.net.URL. "https" (.getHost url) (or port -1) (.getFile url)))))
 
 (defn ssl-redirect-response
-  "Change the response to a HTTPS redirect if the request is HTTP.
+  "Given a HTTP request, return a redirect response to the equivalent HTTPS URL.
   See: wrap-ssl-redirect."
-  ([response request]
-   (ssl-redirect-response response request {}))
-  ([response request options]
-   (if (= (:scheme request) :https)
-     response
-     (-> (resp/redirect (https-url (req/request-url request) (:ssl-port options)))
-         (resp/status   (if (get-request? request) 301 307))))))
+  [request options]
+  (-> (resp/redirect (https-url (req/request-url request) (:ssl-port options)))
+      (resp/status   (if (get-request? request) 301 307))))
 
 (defn wrap-ssl-redirect
   "Middleware that redirects any HTTP request to the equivalent HTTPS URL.
@@ -66,9 +62,13 @@
   ([handler options]
    (fn
      ([request]
-      (ssl-redirect-response (handler request) request options))
+      (if (= (:scheme request) :https)
+        (handler request)
+        (ssl-redirect-response request options)))
      ([request respond raise]
-      (handler request #(respond (ssl-redirect-response % request options)) raise)))))
+      (if (= (:scheme request) :https)
+        (handler request respond raise)
+        (respond (ssl-redirect-response request options)))))))
 
 (defn- build-hsts-header
   [{:keys [max-age include-subdomains?]
