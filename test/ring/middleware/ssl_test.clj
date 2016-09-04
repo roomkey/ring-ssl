@@ -75,14 +75,28 @@
     (testing "HTTP POST request with custom SSL port"
       (let [response (handler (request :post "/"))]
         (is (= (:status response) 307))
-        (is (= (get-header response "location") "https://localhost:8443/"))))))
+        (is (= (get-header response "location") "https://localhost:8443/")))))
+
+  (testing "HTTP POST request doesn't call handler"
+    (let [effect (promise)
+          handler (wrap-ssl-redirect
+                   (fn [req]
+                     (effect "performed")
+                     (response "")))]
+      (handler (request :post "/"))
+      (is (not (realized? effect))))))
 
 (deftest test-wrap-ssl-redirect-cps
   (testing "HTTP GET request"
-    (let [handler (wrap-ssl-redirect (fn [_ respond _] (respond (response ""))))
+    (let [effect  (promise)
+          handler (wrap-ssl-redirect
+                   (fn [_ respond _]
+                     (effect "performed")
+                     (respond (response ""))))
           resp    (promise)
           ex      (promise)]
       (handler (request :get "/") resp ex)
+      (is (not (realized? effect)))
       (is (not (realized? ex)))
       (is (= (:status @resp) 301))
       (is (= (get-header @resp "location") "https://localhost/"))))
