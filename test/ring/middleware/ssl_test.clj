@@ -113,6 +113,11 @@
       (is (= (get-header @resp "location") "https://localhost:8443/")))))
 
 (deftest test-wrap-hsts
+  (testing "no matching handler"
+    (let [handler  (wrap-hsts (constantly nil))
+          response (handler (request :get "/not-found"))]
+      (is (nil? response))))
+
   (testing "defaults"
     (let [handler  (wrap-hsts (constantly (response "")))
           response (handler (request :get "/"))]

@@ -81,7 +81,7 @@
   ([response]
    (hsts-response response {}))
   ([response options]
-   (resp/header response "Strict-Transport-Security" (build-hsts-header options))))
+   (some-> response (resp/header "Strict-Transport-Security" (build-hsts-header options)))))
 
 (defn wrap-hsts
   "Middleware that adds the Strict-Transport-Security header to the response
