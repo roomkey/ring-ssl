@@ -1,4 +1,4 @@
-(defproject ring/ring-ssl "0.3.0-beta1"
+(defproject ring/ring-ssl "0.3.0-beta2"
   :description "Ring middleware for managing HTTPS requests"
   :url "https://github.com/ring-clojure/ring-ssl"
   :license {:name "The MIT License"
