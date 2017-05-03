@@ -15,7 +15,7 @@ responses.
 
 Add the following dependency to your `project.clj`:
 
-    [ring/ring-ssl "0.2.1"]
+    [ring/ring-ssl "0.3.0"]
 
 ## Documentation
 
