@@ -48,8 +48,14 @@
   "Given a HTTP request, return a redirect response to the equivalent HTTPS URL.
   See: wrap-ssl-redirect."
   [request options]
+  (println "request:" request)
   (-> (resp/redirect (https-url (req/request-url request) (:ssl-port options)))
       (resp/status   (if (get-request? request) 301 307))))
+
+(defn do-redirect? [request options]
+  (or
+   (= (:scheme request) :https)
+   (contains? (:exempt options) (:uri request))))
 
 (defn wrap-ssl-redirect
   "Middleware that redirects any HTTP request to the equivalent HTTPS URL.
@@ -62,11 +68,11 @@
   ([handler options]
    (fn
      ([request]
-      (if (= (:scheme request) :https)
+      (if (do-redirect? request options)
         (handler request)
         (ssl-redirect-response request options)))
      ([request respond raise]
-      (if (= (:scheme request) :https)
+      (if (do-redirect? request options)
         (handler request respond raise)
         (respond (ssl-redirect-response request options)))))))
 
