@@ -1,4 +1,4 @@
-(defproject com.roomkey/ring-ssl "0.4.0"
+(defproject com.roomkey/ring-ssl "0.4.1"
   :description "Ring middleware for managing HTTPS requests"
   :url "https://github.com/roomkey/ring-ssl"
   :license {:name "The MIT License"

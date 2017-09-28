@@ -48,7 +48,6 @@
   "Given a HTTP request, return a redirect response to the equivalent HTTPS URL.
   See: wrap-ssl-redirect."
   [request options]
-  (println "request:" request)
   (-> (resp/redirect (https-url (req/request-url request) (:ssl-port options)))
       (resp/status   (if (get-request? request) 301 307))))
 
